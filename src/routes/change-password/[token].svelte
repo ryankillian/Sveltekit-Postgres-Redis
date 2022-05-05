@@ -1,21 +1,23 @@
 <script lang="ts">
 	// @ts-nocheck
-	import { goto } from '$app/navigation';
-	import { session } from '$app/stores';
-	import { loginSchema } from '$lib/schema';
-	import { toErrorMap } from '$lib/utils/toErrorMap';
-	import { user } from '$src/stores';
-	import { createForm } from 'svelte-forms-lib';
-	import type { User } from './types';
+  import { goto } from '$app/navigation';
+  import { page,session } from '$app/stores';
+  import { newPasswordSchema } from '$lib/schema';
+  import { toErrorMap } from '$lib/utils/toErrorMap';
+  import { user } from '$src/stores';
+  import { createForm } from 'svelte-forms-lib';
+  import type { User } from './types';
 
 	const { form, errors, state, handleChange, handleSubmit } = createForm({
 		initialValues: {
-			usernameOrEmail: '',
-			password: ''
+			newPassword: ''
 		},
-		validationSchema: loginSchema,
-		onSubmit: async (values) => {
-			const result = await fetchData(values);
+		validationSchema: newPasswordSchema,
+		onSubmit: async ({newPassword}) => {
+			const result = await fetchData({
+        newPassword,
+        token: $page.params.token
+      });
 
 			if (result.errors) {
 				$errors = toErrorMap(result.errors);
@@ -29,7 +31,7 @@
 	});
 
 	async function fetchData(values) {
-		const response = await fetch(`api/login`, {
+		const response = await fetch(`../api/changePassword`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -40,46 +42,25 @@
 	}
 </script>
 
-<h1>Login</h1>
+<h1>Change Password</h1>
 <form on:submit={handleSubmit}>
-	<label for="usernameOrEmail">Username or Email</label>
+	<label for="newPassword">New Password</label>
 	<input
-		id="usernameOrEmail"
-		name="usernameOrEmail"
+		id="newPassword"
+		name="newPassword"
 		on:change={handleChange}
 		on:blur={handleChange}
-		bind:value={$form.usernameOrEmail}
+		bind:value={$form.newPassword}
 	/>
-	{#if $errors.usernameOrEmail}
-		<small>{$errors.usernameOrEmail}</small>
+	{#if $errors.newPassword}
+		<small>{$errors.newPassword}</small>
 	{/if}
 
-	<label for="password">password</label>
-	<input
-		id="password"
-		name="password"
-		on:change={handleChange}
-		on:blur={handleChange}
-		bind:value={$form.password}
-	/>
-	{#if $errors.password}
-		<small>{$errors.password}</small>
-	{/if}
-
-	<div class="buttonLink">
 	<button type="submit">submit</button>
-	<a href="/forgotPassword">Forgot password?</a>
-</div>
 </form>
 
 <style>
-	.buttonLink {
-		display: flex;
-		justify-content: space-between;
-		max-width: 400px;
-		margin-top: 12px;
-	}
-	input {
+	input{
 		font-family: inherit;
 		font-size: inherit;
 		max-width: 400px;
@@ -91,13 +72,14 @@
 		transition: all 150ms ease;
 		background: var(--white);
 	}
-	input:focus{
+
+	input:focus {
 		outline: none;
 		box-shadow: 0 0 0 4px rgb(227, 227, 245);
 		border-color: var(--grey);
 	}
 
-	input:disabled {
+	input:disabled{
 		color: #ccc;
 	}
 

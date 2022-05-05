@@ -1,35 +1,33 @@
+
+
 <script lang="ts">
 	// @ts-nocheck
-	import { goto } from '$app/navigation';
-	import { session } from '$app/stores';
-	import { loginSchema } from '$lib/schema';
-	import { toErrorMap } from '$lib/utils/toErrorMap';
-	import { user } from '$src/stores';
-	import { createForm } from 'svelte-forms-lib';
-	import type { User } from './types';
+  import { emailSchema } from '$lib/schema';
+  import { toErrorMap } from '$lib/utils/toErrorMap';
+  import { createForm } from 'svelte-forms-lib';
 
-	const { form, errors, state, handleChange, handleSubmit } = createForm({
+  let isComplete: boolean = false;
+  let email: string = '';
+
+	const { form, errors, handleChange, handleSubmit } = createForm({
 		initialValues: {
-			usernameOrEmail: '',
-			password: ''
+			email: ''
 		},
-		validationSchema: loginSchema,
+		validationSchema: emailSchema,
 		onSubmit: async (values) => {
 			const result = await fetchData(values);
 
 			if (result.errors) {
 				$errors = toErrorMap(result.errors);
 			} else {
-				// set session here because GetSession called before endpoint
-				$user = result.data as User;
-				$session = result.data as User;
-				goto(`/${result.data.id}`);
+        email = values.email;
+				isComplete = true;
 			}
 		}
 	});
 
 	async function fetchData(values) {
-		const response = await fetch(`api/login`, {
+		const response = await fetch(`api/forgotPassword`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -40,46 +38,31 @@
 	}
 </script>
 
-<h1>Login</h1>
+<h1>Forgot Password</h1>
+{#if isComplete}
+  <p>
+      An email has been sent to {email} with a link to reset your password.
+  </p>
+{:else}
 <form on:submit={handleSubmit}>
-	<label for="usernameOrEmail">Username or Email</label>
+	<label for="email">Email</label>
 	<input
-		id="usernameOrEmail"
-		name="usernameOrEmail"
+		id="email"
+		name="email"
 		on:change={handleChange}
 		on:blur={handleChange}
-		bind:value={$form.usernameOrEmail}
+		bind:value={$form.email}
 	/>
-	{#if $errors.usernameOrEmail}
-		<small>{$errors.usernameOrEmail}</small>
+	{#if $errors.email}
+		<small>{$errors.email}</small>
 	{/if}
 
-	<label for="password">password</label>
-	<input
-		id="password"
-		name="password"
-		on:change={handleChange}
-		on:blur={handleChange}
-		bind:value={$form.password}
-	/>
-	{#if $errors.password}
-		<small>{$errors.password}</small>
-	{/if}
-
-	<div class="buttonLink">
 	<button type="submit">submit</button>
-	<a href="/forgotPassword">Forgot password?</a>
-</div>
 </form>
+{/if}
 
 <style>
-	.buttonLink {
-		display: flex;
-		justify-content: space-between;
-		max-width: 400px;
-		margin-top: 12px;
-	}
-	input {
+	input{
 		font-family: inherit;
 		font-size: inherit;
 		max-width: 400px;
@@ -91,13 +74,14 @@
 		transition: all 150ms ease;
 		background: var(--white);
 	}
-	input:focus{
+
+	input:focus {
 		outline: none;
 		box-shadow: 0 0 0 4px rgb(227, 227, 245);
 		border-color: var(--grey);
 	}
 
-	input:disabled {
+	input:disabled{
 		color: #ccc;
 	}
 

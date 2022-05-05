@@ -1,12 +1,13 @@
-import type { RequestHandler } from '@sveltejs/kit';
-import { Prisma } from '@prisma/client';
 import argon2 from 'argon2';
 import { serialize } from 'cookie';
 import { v4 as uuidv4 } from 'uuid';
 
+import type { RequestHandler } from '@sveltejs/kit';
+import { Prisma } from '@prisma/client';
+
 import prisma from '$lib/db';
 import { redis } from '$lib/redis';
-import { COOKIE_NAME, SESSION_PREFIX, USER_ID } from '$src/constants';
+import { COOKIE_NAME, NINETY_DAYS, SESSION_PREFIX } from '$src/constants';
 import type { FieldError } from 'src/types';
 
 export const post: RequestHandler = async ({ request }) => {
@@ -98,7 +99,7 @@ export const post: RequestHandler = async ({ request }) => {
 	// 3. create session id and add to Redis
 	const uuid = uuidv4();
 	const sessionId = `${SESSION_PREFIX}${uuid}`;
-	await redis.hset(sessionId, USER_ID, user.id + '');
+	await redis.set(sessionId, user.id + '', 'EX', NINETY_DAYS);
 
 	// 4. Set cookie on client with session id
 	return {
@@ -108,7 +109,7 @@ export const post: RequestHandler = async ({ request }) => {
 				httpOnly: true,
 				sameSite: 'strict',
 				secure: process.env.NODE_ENV === 'production',
-				maxAge: 60 * 60 * 24 * 7 // one week
+				maxAge: NINETY_DAYS
 			})
 		},
 		body: {

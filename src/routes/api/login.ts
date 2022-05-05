@@ -5,14 +5,14 @@ import { v4 as uuidv4 } from 'uuid';
 import prisma from '$lib/db';
 import { redis } from '$src/lib/redis';
 import type { FieldError } from 'src/types';
-import { COOKIE_NAME, SESSION_PREFIX, USER_ID } from '$src/constants';
+import { COOKIE_NAME, NINETY_DAYS, SESSION_PREFIX, USER_ID } from '$src/constants';
 import { serialize } from 'cookie';
 
 export const post: RequestHandler = async (event) => {
 	const { usernameOrEmail, password } = await event.request.json();
 	let errors: FieldError[] = [];
 	let user;
-
+	console.log('usernameOrEmail', usernameOrEmail);
 	//0. serverside validation
 	if (usernameOrEmail.length < 3 || usernameOrEmail.length > 128) {
 		return {
@@ -30,8 +30,8 @@ export const post: RequestHandler = async (event) => {
 		//	1. look for user, return error if not found
 		user = await prisma.user.findUnique({
 			where: usernameOrEmail.includes('@')
-				? { username: usernameOrEmail }
-				: { email: usernameOrEmail }
+				? { email: usernameOrEmail }
+				: { username: usernameOrEmail }
 		});
 	} catch (e) {
 		console.log(e);
@@ -66,7 +66,7 @@ export const post: RequestHandler = async (event) => {
 	//3. set session id to redis
 	const uuid = uuidv4();
 	const sessionId = `${SESSION_PREFIX}${uuid}`;
-	await redis.hset(sessionId, USER_ID, user.id + '');
+	await redis.set(sessionId, user.id + '', 'EX', NINETY_DAYS);
 
 	// 4. set user in session for use in frontend
 	event.locals.user = { id: user?.id + '', username: user?.username, email: user?.email };
@@ -79,7 +79,7 @@ export const post: RequestHandler = async (event) => {
 				httpOnly: true,
 				sameSite: 'strict',
 				secure: process.env.NODE_ENV === 'production',
-				maxAge: 60 * 60 * 24 * 7 // one week
+				maxAge: NINETY_DAYS
 			})
 		},
 		body: {

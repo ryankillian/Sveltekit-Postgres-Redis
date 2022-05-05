@@ -6,5 +6,5 @@ export type FieldError = {
 export interface User {
 	id: string;
 	username: string;
-	email: string;
+	email?: string;
 }
