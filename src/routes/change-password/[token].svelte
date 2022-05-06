@@ -1,12 +1,12 @@
 <script lang="ts">
-	// @ts-nocheck
+	
   import { goto } from '$app/navigation';
   import { page,session } from '$app/stores';
   import { newPasswordSchema } from '$lib/schema';
   import { toErrorMap } from '$lib/utils/toErrorMap';
   import { user } from '$src/stores';
+  import type { User } from '$src/types';
   import { createForm } from 'svelte-forms-lib';
-  import type { User } from './types';
 
 	const { form, errors, state, handleChange, handleSubmit } = createForm({
 		initialValues: {
@@ -19,13 +19,13 @@
         token: $page.params.token
       });
 
-			if (result.errors) {
+			if (result.status === 400) {
 				$errors = toErrorMap(result.errors);
 			} else {
 				// set session here because GetSession called before endpoint
-				$user = result.data as User;
-				$session = result.data as User;
-				goto(`/${result.data.id}`);
+				$user = result.user as User;
+				$session = result.user as User;
+				goto(`/${result.user.id}`);
 			}
 		}
 	});

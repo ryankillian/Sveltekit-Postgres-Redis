@@ -9,12 +9,12 @@ import { sendEmail } from '$src/lib/utils/sendEmail';
 
 export const post: RequestHandler = async (event) => {
 	const { email } = await event.request.json();
-	let errors: FieldError[] = [];
 	let user;
 
 	// serverside validation
 	if (email.length < 3 || email.length > 64 || !email.includes('@')) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -48,10 +48,6 @@ export const post: RequestHandler = async (event) => {
 	}
 
 	return {
-		body: {
-			data: {
-				email
-			}
-		}
+		status: 201
 	};
 };

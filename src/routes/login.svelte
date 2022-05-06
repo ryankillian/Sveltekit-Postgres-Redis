@@ -6,7 +6,6 @@
 	import { toErrorMap } from '$lib/utils/toErrorMap';
 	import { user } from '$src/stores';
 	import { createForm } from 'svelte-forms-lib';
-	import type { User } from './types';
 
 	const { form, errors, state, handleChange, handleSubmit } = createForm({
 		initialValues: {
@@ -17,13 +16,13 @@
 		onSubmit: async (values) => {
 			const result = await fetchData(values);
 
-			if (result.errors) {
+			if (result.status === 400) {
 				$errors = toErrorMap(result.errors);
 			} else {
 				// set session here because GetSession called before endpoint
-				$user = result.data as User;
-				$session = result.data as User;
-				goto(`/${result.data.id}`);
+				$user = result.user;
+				$session = result.user;
+				goto(`/${result.user.id}`);
 			}
 		}
 	});

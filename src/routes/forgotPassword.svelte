@@ -17,7 +17,7 @@
 		onSubmit: async (values) => {
 			const result = await fetchData(values);
 
-			if (result.errors) {
+			if (result.status === 400) {
 				$errors = toErrorMap(result.errors);
 			} else {
         email = values.email;

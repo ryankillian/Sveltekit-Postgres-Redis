@@ -12,10 +12,11 @@ export const post: RequestHandler = async (event) => {
 	const { usernameOrEmail, password } = await event.request.json();
 	let errors: FieldError[] = [];
 	let user;
-	console.log('usernameOrEmail', usernameOrEmail);
+
 	//0. serverside validation
 	if (usernameOrEmail.length < 3 || usernameOrEmail.length > 128) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -39,6 +40,7 @@ export const post: RequestHandler = async (event) => {
 
 	if (!user) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -53,6 +55,7 @@ export const post: RequestHandler = async (event) => {
 	const valid = await argon2.verify(user.password, password);
 	if (!valid) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -68,11 +71,12 @@ export const post: RequestHandler = async (event) => {
 	const sessionId = `${SESSION_PREFIX}${uuid}`;
 	await redis.set(sessionId, user.id + '', 'EX', NINETY_DAYS);
 
-	// 4. set user in session for use in frontend
-	event.locals.user = { id: user?.id + '', username: user?.username, email: user?.email };
+	// // 4. set user in session for use in frontend
+	// event.locals.user = { id: user?.id + '', username: user?.username, email: user?.email };
 
 	// 5 return cookie with session id to client
 	return {
+		status: 201,
 		headers: {
 			'Set-Cookie': serialize(COOKIE_NAME, sessionId, {
 				path: '/',
@@ -83,10 +87,9 @@ export const post: RequestHandler = async (event) => {
 			})
 		},
 		body: {
-			data: {
+			user: {
 				id: user?.id,
-				username: user?.username,
-				email: user?.email
+				username: user?.username
 			}
 		}
 	};

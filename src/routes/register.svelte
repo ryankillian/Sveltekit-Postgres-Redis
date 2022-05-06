@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { createForm } from 'svelte-forms-lib';
+	import { goto } from '$app/navigation';
+	import { session } from '$app/stores';
 	import { registerSchema } from '$lib/schema';
 	import { toErrorMap } from '$lib/utils/toErrorMap';
-	import { session } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { createForm } from 'svelte-forms-lib';
 
 	const { form, errors, state, handleChange, handleSubmit } = createForm({
 		initialValues: {
@@ -15,12 +15,12 @@
 		onSubmit: async (values) => {
 			const result = await fetchData(values);
 
-			if (result.errors) {
+			if (result.status === 400) {
 				$errors = toErrorMap(result.errors);
 			} else {
 				// set session here because GetSession called before endpoint
-				$session = result.data;
-				goto(`/${result.data.id}`);
+				$session = result.user;
+				goto(`/${result.user.id}`);
 			}
 		}
 	});

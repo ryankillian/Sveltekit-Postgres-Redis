@@ -8,15 +8,19 @@ import { Prisma } from '@prisma/client';
 import prisma from '$lib/db';
 import { redis } from '$lib/redis';
 import { COOKIE_NAME, NINETY_DAYS, SESSION_PREFIX } from '$src/constants';
-import type { FieldError } from 'src/types';
+import type { FieldError, IncomingHttpHeaders, Typify, User } from 'src/types';
 
-export const post: RequestHandler = async ({ request }) => {
+type OutputType = Typify<{ user: User }>;
+type Params = { id: string };
+
+export const post: RequestHandler<Params, OutputType> = async ({ request }) => {
 	const { username, email, password } = await request.json();
 	let user;
 
 	// 1. severside validation
 	if (username.length < 3 || username.length > 64) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -30,6 +34,7 @@ export const post: RequestHandler = async ({ request }) => {
 
 	if (username.includes('@')) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -43,6 +48,7 @@ export const post: RequestHandler = async ({ request }) => {
 
 	if (email.length < 3 || email.length > 64 || !email.includes('@')) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -56,6 +62,7 @@ export const post: RequestHandler = async ({ request }) => {
 
 	if (password.length < 3 || password.length > 128) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -77,7 +84,6 @@ export const post: RequestHandler = async ({ request }) => {
 				password: hashedPassword
 			}
 		});
-		console.log(user);
 	} catch (e) {
 		// return if either email or username is already taken
 		if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -88,6 +94,7 @@ export const post: RequestHandler = async ({ request }) => {
 					message: `${field} already taken`
 				};
 				return {
+					status: 400,
 					body: {
 						errors: [error]
 					}
@@ -103,6 +110,7 @@ export const post: RequestHandler = async ({ request }) => {
 
 	// 4. Set cookie on client with session id
 	return {
+		status: 201,
 		headers: {
 			'Set-Cookie': serialize(COOKIE_NAME, sessionId, {
 				path: '/',
@@ -113,10 +121,9 @@ export const post: RequestHandler = async ({ request }) => {
 			})
 		},
 		body: {
-			data: {
-				id: user?.id,
-				username,
-				email
+			user: {
+				id: user.id + '',
+				username: user.username
 			}
 		}
 	};

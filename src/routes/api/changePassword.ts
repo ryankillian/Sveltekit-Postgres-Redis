@@ -7,23 +7,17 @@ import type { RequestHandler } from '@sveltejs/kit';
 import prisma from '$lib/db';
 import { redis } from '$src/lib/redis';
 import type { FieldError } from '$src/types';
-import {
-	COOKIE_NAME,
-	FORGOT_PASSWORD_PREFIX,
-	NINETY_DAYS,
-	SESSION_PREFIX,
-	USER_ID
-} from '$src/constants';
+import { COOKIE_NAME, FORGOT_PASSWORD_PREFIX, NINETY_DAYS, SESSION_PREFIX } from '$src/constants';
 
 export const post: RequestHandler = async (event) => {
 	const { newPassword, token } = await event.request.json();
 	let errors: FieldError[] = [];
 	let user;
-	console.log('newPassword', newPassword);
-	console.log('token', token);
+
 	//0. serverside validation
 	if (newPassword.length > 128) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -36,6 +30,7 @@ export const post: RequestHandler = async (event) => {
 	}
 	if (token.length > 64) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -53,6 +48,7 @@ export const post: RequestHandler = async (event) => {
 
 	if (!userId) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -77,6 +73,7 @@ export const post: RequestHandler = async (event) => {
 
 	if (!user) {
 		return {
+			status: 400,
 			body: {
 				errors: [
 					{
@@ -104,10 +101,11 @@ export const post: RequestHandler = async (event) => {
 	await redis.set(sessionId, user.id + '', 'EX', NINETY_DAYS);
 
 	// set user in session for use in frontend
-	event.locals.user = { id: user?.id + '', username: user?.username, email: user?.email };
+	// event.locals.user = { id: user?.id + '', username: user?.username, email: user?.email };
 
 	// return cookie with session id to client
 	return {
+		status: 201,
 		headers: {
 			'Set-Cookie': serialize(COOKIE_NAME, sessionId, {
 				path: '/',
@@ -118,10 +116,9 @@ export const post: RequestHandler = async (event) => {
 			})
 		},
 		body: {
-			data: {
+			user: {
 				id: user?.id,
-				username: user?.username,
-				email: user?.email
+				username: user?.username
 			}
 		}
 	};
